@@ -103,6 +103,44 @@ export const handleWriteCreateRequest = async (request: any) => {
       };
     }
 
+    case "import_svg": {
+      const p = request.params || {};
+      const svg = typeof p.svg === "string" ? p.svg.trim() : "";
+      if (!svg) throw new Error("svg (raw SVG markup) is required");
+      if (!/<svg[\s>]/i.test(svg))
+        throw new Error("svg does not look like valid SVG markup (missing <svg> tag)");
+      if (p.width != null && (!(Number(p.width) > 0)))
+        throw new Error(`width must be a positive number, got ${p.width}`);
+      if (p.height != null && (!(Number(p.height) > 0)))
+        throw new Error(`height must be a positive number, got ${p.height}`);
+      const parent = await getParentNode(p.parentId);
+      let node: FrameNode;
+      try {
+        node = figma.createNodeFromSvg(svg);
+      } catch (e) {
+        throw new Error(
+          `Figma could not parse the SVG: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+      node.x = p.x != null ? p.x : 0;
+      node.y = p.y != null ? p.y : 0;
+      if (p.name) node.name = p.name;
+      // Resize proportionally to the requested width (SVGs come in at their
+      // intrinsic size). rescale keeps the vector content sharp and in ratio.
+      if (p.width != null && node.width > 0) {
+        node.rescale(Number(p.width) / node.width);
+      } else if (p.height != null && node.height > 0) {
+        node.rescale(Number(p.height) / node.height);
+      }
+      (parent as any).appendChild(node);
+      figma.commitUndo();
+      return {
+        type: request.type,
+        requestId: request.requestId,
+        data: { id: node.id, name: node.name, type: node.type, bounds: getBounds(node) },
+      };
+    }
+
     case "create_component": {
       const p = request.params || {};
       const nodeId = request.nodeIds && request.nodeIds[0];

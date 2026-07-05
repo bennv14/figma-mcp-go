@@ -206,6 +206,19 @@ func TestHandlers_WriteCreateTools(t *testing.T) {
 	})
 	// import_image minimal
 	callTool(t, s, "import_image", map[string]any{"imageData": "abc123"})
+
+	// import_svg with optional params
+	callTool(t, s, "import_svg", map[string]any{
+		"svg":    "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>",
+		"x":      float64(10),
+		"y":      float64(20),
+		"width":  float64(100),
+		"height": float64(100),
+		"name":   "Icon",
+		"parentId": "1:1",
+	})
+	// import_svg minimal
+	callTool(t, s, "import_svg", map[string]any{"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>"})
 }
 
 // ── Write – modify tools ──────────────────────────────────────────────────────

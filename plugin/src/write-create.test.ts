@@ -152,6 +152,103 @@ describe("create_component", () => {
   });
 });
 
+// ── import_svg ─────────────────────────────────────────────────────────────────
+
+describe("import_svg", () => {
+  let createdSvgArg: string | null;
+  let appendedChild: any;
+  let svgNode: any;
+
+  beforeEach(() => {
+    createdSvgArg = null;
+    appendedChild = null;
+    svgNode = {
+      id: "svg:new", name: "svg", type: "FRAME",
+      x: 0, y: 0, width: 24, height: 24,
+      rescale(factor: number) { this.width *= factor; this.height *= factor; },
+    };
+    (globalThis as any).figma = {
+      ...(globalThis as any).figma,
+      currentPage: { id: "0:1", name: "Page 1", appendChild: (c: any) => { appendedChild = c; } },
+      getNodeByIdAsync: async () => null,
+      createNodeFromSvg: (svg: string) => { createdSvgArg = svg; return svgNode; },
+    };
+  });
+
+  const svgMarkup = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
+
+  it("creates a vector node from raw SVG markup", async () => {
+    const res = await handleWriteCreateRequest(makeRequest("import_svg", [], { svg: svgMarkup }));
+    expect(createdSvgArg).toBe(svgMarkup);
+    expect(res?.data.type).toBe("FRAME");
+    expect(res?.data.id).toBe("svg:new");
+    expect(appendedChild).toBe(svgNode);
+    expect(commitUndoCalled).toBe(true);
+  });
+
+  it("positions and names the node", async () => {
+    await handleWriteCreateRequest(makeRequest("import_svg", [], { svg: svgMarkup, x: 40, y: 60, name: "Logo" }));
+    expect(svgNode.x).toBe(40);
+    expect(svgNode.y).toBe(60);
+    expect(svgNode.name).toBe("Logo");
+  });
+
+  it("rescales proportionally to the requested width", async () => {
+    await handleWriteCreateRequest(makeRequest("import_svg", [], { svg: svgMarkup, width: 48 }));
+    // 24 -> 48 means factor 2, so height doubles too.
+    expect(svgNode.width).toBe(48);
+    expect(svgNode.height).toBe(48);
+  });
+
+  it("rescales to height when width is omitted", async () => {
+    await handleWriteCreateRequest(makeRequest("import_svg", [], { svg: svgMarkup, height: 12 }));
+    expect(svgNode.width).toBe(12);
+    expect(svgNode.height).toBe(12);
+  });
+
+  it("throws when width is negative or zero", async () => {
+    await expect(
+      handleWriteCreateRequest(makeRequest("import_svg", [], { svg: svgMarkup, width: -10 }))
+    ).rejects.toThrow("width must be a positive number");
+    await expect(
+      handleWriteCreateRequest(makeRequest("import_svg", [], { svg: svgMarkup, width: 0 }))
+    ).rejects.toThrow("width must be a positive number");
+  });
+
+  it("throws when height is negative", async () => {
+    await expect(
+      handleWriteCreateRequest(makeRequest("import_svg", [], { svg: svgMarkup, height: -5 }))
+    ).rejects.toThrow("height must be a positive number");
+  });
+
+  it("does not create an orphan node when dimensions are invalid", async () => {
+    await expect(
+      handleWriteCreateRequest(makeRequest("import_svg", [], { svg: svgMarkup, width: -1 }))
+    ).rejects.toThrow();
+    expect(createdSvgArg).toBeNull();
+    expect(appendedChild).toBeNull();
+  });
+
+  it("throws when svg is missing", async () => {
+    await expect(
+      handleWriteCreateRequest(makeRequest("import_svg", [], {}))
+    ).rejects.toThrow("svg (raw SVG markup) is required");
+  });
+
+  it("throws when markup is not valid SVG", async () => {
+    await expect(
+      handleWriteCreateRequest(makeRequest("import_svg", [], { svg: "<div>not svg</div>" }))
+    ).rejects.toThrow("does not look like valid SVG");
+  });
+
+  it("wraps Figma parse errors with a clear message", async () => {
+    (globalThis as any).figma.createNodeFromSvg = () => { throw new Error("bad path data"); };
+    await expect(
+      handleWriteCreateRequest(makeRequest("import_svg", [], { svg: svgMarkup }))
+    ).rejects.toThrow("Figma could not parse the SVG: bad path data");
+  });
+});
+
 // ── create_section ────────────────────────────────────────────────────────────
 
 describe("create_section", () => {

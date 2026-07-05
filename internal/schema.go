@@ -389,6 +389,20 @@ func ValidateRPC(tool string, nodeIDs []string, params map[string]interface{}) s
 			return fmt.Sprintf("parentId must use colon format e.g. 4029:12345, got: %s", pid)
 		}
 
+	case "import_svg":
+		if svg, _ := params["svg"].(string); strings.TrimSpace(svg) == "" {
+			return "svg (raw SVG markup) is required"
+		}
+		if w, ok := params["width"].(float64); ok && w <= 0 {
+			return "width must be positive"
+		}
+		if h, ok := params["height"].(float64); ok && h <= 0 {
+			return "height must be positive"
+		}
+		if pid, ok := params["parentId"].(string); ok && pid != "" && !ValidNodeID(pid) {
+			return fmt.Sprintf("parentId must use colon format e.g. 4029:12345, got: %s", pid)
+		}
+
 	// ── Style tools ──────────────────────────────────────────────────────────
 
 	case "create_paint_style":

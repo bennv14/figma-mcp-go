@@ -1326,3 +1326,36 @@ func TestValidateRPC_CreateSection(t *testing.T) {
 		t.Error("expected error for zero height")
 	}
 }
+
+func TestValidateRPC_ImportSVG(t *testing.T) {
+	// missing svg
+	if msg := ValidateRPC("import_svg", nil, nil); msg == "" {
+		t.Error("expected error for missing svg")
+	}
+	// empty svg
+	if msg := ValidateRPC("import_svg", nil, map[string]interface{}{"svg": "   "}); msg == "" {
+		t.Error("expected error for empty svg")
+	}
+	// invalid width
+	if msg := ValidateRPC("import_svg", nil, map[string]interface{}{"svg": "<svg></svg>", "width": float64(-10)}); msg == "" {
+		t.Error("expected error for negative width")
+	}
+	// invalid height
+	if msg := ValidateRPC("import_svg", nil, map[string]interface{}{"svg": "<svg></svg>", "height": float64(0)}); msg == "" {
+		t.Error("expected error for zero height")
+	}
+	// invalid parentId
+	if msg := ValidateRPC("import_svg", nil, map[string]interface{}{"svg": "<svg></svg>", "parentId": "invalid"}); msg == "" {
+		t.Error("expected error for invalid parentId")
+	}
+	// valid
+	if msg := ValidateRPC("import_svg", nil, map[string]interface{}{
+		"svg":      "<svg></svg>",
+		"width":    float64(24),
+		"height":   float64(24),
+		"name":     "Icon",
+		"parentId": "1:1",
+	}); msg != "" {
+		t.Errorf("unexpected error: %s", msg)
+	}
+}

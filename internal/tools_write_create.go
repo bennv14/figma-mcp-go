@@ -128,6 +128,45 @@ func registerWriteCreateTools(s *server.MCPServer, node *Node) {
 		return renderResponse(resp, err)
 	})
 
+	s.AddTool(mcp.NewTool("import_svg",
+		mcp.WithDescription("Import raw SVG markup into Figma as an editable vector node. Figma parses the <svg> into a FRAME containing vector layers, so it stays crisp and editable (unlike import_image, which rasterises). Use this for icons, logos, and illustrations. Provide the SVG as a plain UTF-8 string (not base64)."),
+		mcp.WithString("svg",
+			mcp.Required(),
+			mcp.Description("Raw SVG markup, e.g. '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\">...</svg>'"),
+		),
+		mcp.WithNumber("x", mcp.Description("X position (default 0)")),
+		mcp.WithNumber("y", mcp.Description("Y position (default 0)")),
+		mcp.WithNumber("width", mcp.Description("Optional target width in pixels. The SVG is scaled proportionally to match it, preserving aspect ratio.")),
+		mcp.WithNumber("height", mcp.Description("Optional target height in pixels (used only when width is omitted). Scales proportionally.")),
+		mcp.WithString("name", mcp.Description("Node name shown in the layers panel")),
+		mcp.WithString("parentId", mcp.Description("Parent node ID in colon format. Defaults to current page.")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := req.GetArguments()
+		params := map[string]interface{}{
+			"svg": args["svg"],
+		}
+		if x, ok := args["x"].(float64); ok {
+			params["x"] = x
+		}
+		if y, ok := args["y"].(float64); ok {
+			params["y"] = y
+		}
+		if w, ok := args["width"].(float64); ok {
+			params["width"] = w
+		}
+		if h, ok := args["height"].(float64); ok {
+			params["height"] = h
+		}
+		if n, ok := args["name"].(string); ok && n != "" {
+			params["name"] = n
+		}
+		if pid, ok := args["parentId"].(string); ok && pid != "" {
+			params["parentId"] = pid
+		}
+		resp, err := node.Send(ctx, "import_svg", nil, params)
+		return renderResponse(resp, err)
+	})
+
 	s.AddTool(mcp.NewTool("create_component",
 		mcp.WithDescription("Convert an existing FRAME node into a reusable COMPONENT. The frame is replaced in place by the new component."),
 		mcp.WithString("nodeId",

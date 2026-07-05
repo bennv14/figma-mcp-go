@@ -13,7 +13,7 @@ Open-source Figma MCP server with full read/write access via plugin — no REST 
 **Highlights**
 - No Figma API token required
 - No rate limits — free plan friendly
-- **Read and Write** live Figma data via plugin bridge — 73 tools total
+- **Read and Write** live Figma data via plugin bridge — 74 tools total
 - Full design automation — styles, variables, components, prototypes, and content
 - Design strategies included — read_design_strategy, design_strategy, and more prompts built in
 
@@ -111,6 +111,7 @@ codex mcp add figma-mcp-go -- npx -y @vkhanhqui/figma-mcp-go@latest
 | `create_ellipse` | Create an ellipse or circle |
 | `create_text` | Create a text node (font loaded automatically) |
 | `import_image` | Decode base64 image and place it as a rectangle fill |
+| `import_svg` | Parse raw SVG markup into an editable vector node (icons, logos) |
 | `create_component` | Convert an existing FRAME node into a reusable component |
 | `create_section` | Create a Figma Section node to organise frames on a page |
 
